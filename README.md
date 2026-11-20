@@ -1,35 +1,51 @@
----
-tags:
-- FrozenLake-v1-4x4-no_slippery
-- q-learning
-- reinforcement-learning
-- custom-implementation
-model-index:
-- name: q-FrozenLake-v1-4x4-noSlippery
-  results:
-  - task:
-      type: reinforcement-learning
-      name: reinforcement-learning
-    dataset:
-      name: FrozenLake-v1-4x4-no_slippery
-      type: FrozenLake-v1-4x4-no_slippery
-    metrics:
-    - type: mean_reward
-      value: 1.00 +/- 0.00
-      name: mean_reward
-      verified: false
----
+# Q-Learning on FrozenLake-v1 (4x4, non-slippery)
 
-  # **Q-Learning** Agent playing1 **FrozenLake-v1**
-  This is a trained model of a **Q-Learning** agent playing **FrozenLake-v1** .
+A tabular Q-learning agent that learns to solve the 4x4 FrozenLake environment from [Gymnasium](https://gymnasium.farama.org/). I built it while working through Unit 2 of the [Hugging Face Deep Reinforcement Learning course](https://huggingface.co/learn/deep-rl-course).
 
-  ## Usage
+**Result:** mean reward of **1.00 ± 0.00** over the evaluation episodes, meaning the agent reaches the goal every time.
 
-  ```python
+## The Environment
 
-  model = load_from_hub(repo_id="BiggestQ/q-FrozenLake-v1-4x4-noSlippery", filename="q-learning.pkl")
+FrozenLake is a grid world. The agent starts in the top-left corner and must reach the goal in the bottom-right without falling into a hole.
 
-  # Don't forget to check if you need to add additional attributes (is_slippery=False etc)
-  env = gym.make(model["env_id"])
-  ```
-  
+- **States:** 16 (one per cell, numbered 0 to 15)
+- **Actions:** 4 (left, down, right, up)
+- **Reward:** 1 for reaching the goal, 0 otherwise
+- **Slippery:** off (`is_slippery=False`), so every move goes exactly where intended
+
+## How It Works
+
+The agent keeps a Q-table with one row per state and one column per action. Each entry estimates how good an action is in a given state, and it is updated after every step with the Q-learning (temporal difference) rule:
+
+```
+Q(s, a) ← Q(s, a) + α · [ r + γ · max Q(s', a') − Q(s, a) ]
+```
+
+During training it uses an epsilon-greedy policy, exploring randomly at first and exploiting its learned values more as epsilon decays. At evaluation time it always picks the action with the highest Q-value.
+
+## Using the Trained Model
+
+The trained Q-table is stored in `q-learning.pkl`. To load it from the Hugging Face Hub:
+
+```python
+import pickle
+import gymnasium as gym
+from huggingface_hub import hf_hub_download
+
+path = hf_hub_download(
+    repo_id="BiggestQ/q-FrozenLake-v1-4x4-noSlippery",
+    filename="q-learning.pkl",
+)
+with open(path, "rb") as f:
+    model = pickle.load(f)
+
+# The pickle also stores the environment settings (e.g. is_slippery=False)
+env = gym.make(model["env_id"], is_slippery=False)
+```
+
+Only unpickle files from sources you trust, since loading a pickle can execute code.
+
+## Links
+
+- Model on Hugging Face: https://huggingface.co/BiggestQ/q-FrozenLake-v1-4x4-noSlippery
+- Course: https://huggingface.co/learn/deep-rl-course
